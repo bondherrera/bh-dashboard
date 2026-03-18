@@ -2484,16 +2484,19 @@ function refreshFinances(){
 // INVOICES (stats only — displayed on Proposals page)
 // ============================================================
 function refreshInvoices(){
-  const invs = DB.invoices
+  // Pull stats from proposals (invoices tab removed)
+  const proposals = DB.load('proposals')
   let total=0, paid=0
-  invs.forEach(i => {
-    total += i.amount
-    if(i.status==='paid') paid += i.amount
+  proposals.forEach(p => {
+    const v = parseFloat(p.value)||0
+    if(v > 0) total += v
+    if(p.status==='paid') paid += v
   })
+  const outstanding = total - paid
   const el = id => document.getElementById(id)
   if(el('inv-total'))       el('inv-total').textContent = fmtShort(total)
   if(el('inv-paid'))        el('inv-paid').textContent = fmtShort(paid)
-  if(el('inv-outstanding')) el('inv-outstanding').textContent = fmtShort(total-paid)
+  if(el('inv-outstanding')) el('inv-outstanding').textContent = fmtShort(outstanding)
 }
 
 // ============================================================
@@ -2851,8 +2854,9 @@ function refreshOverview(){
   const bids = DB.bids
   document.getElementById('ov-bids').textContent = bids.filter(b=>b.status==='sent').length
 
-  const invs = DB.invoices
-  const outstanding = invs.filter(i=>i.status!=='paid').reduce((s,i)=>s+i.amount,0)
+  // Outstanding = sum of proposal values that are NOT paid
+  const allProps = DB.load('proposals')
+  const outstanding = allProps.filter(p=>p.status!=='paid').reduce((s,p)=>s+(parseFloat(p.value)||0),0)
   document.getElementById('ov-outstanding').textContent = fmtShort(outstanding)
 
   // Recent projects

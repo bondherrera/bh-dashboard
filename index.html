@@ -704,6 +704,17 @@ tbody tr:hover{background:var(--bg)}
   </nav>
   <div class="sidebar__footer">
     <div class="sidebar__date" id="sidebarDate"></div>
+    <div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.75rem">
+      <button onclick="exportAllData()" style="width:100%;padding:0.45em 0.75em;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.7);font-size:0.75rem;font-weight:500;cursor:pointer;text-align:left;display:flex;align-items:center;gap:0.5rem;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.13)'" onmouseout="this.style.background='rgba(255,255,255,0.07)'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Export Data
+      </button>
+      <button onclick="document.getElementById('import-file-input').click()" style="width:100%;padding:0.45em 0.75em;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.7);font-size:0.75rem;font-weight:500;cursor:pointer;text-align:left;display:flex;align-items:center;gap:0.5rem;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.13)'" onmouseout="this.style.background='rgba(255,255,255,0.07)'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l4-4m0 0l4 4m-4-4v12"/></svg>
+        Import Data
+      </button>
+      <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importAllData(this)">
+    </div>
   </div>
 </aside>
 
@@ -5206,6 +5217,60 @@ function printReq(){
   document.head.appendChild(style)
   window.print()
   setTimeout(()=>{ const s=document.getElementById('req-print-style'); if(s) s.remove() }, 1000)
+}
+
+/* ── EXPORT / IMPORT ALL DATA ───────────────────────────── */
+const DATA_KEYS = ['proposals','transactions','invoices','bids','projects','clients','estimates','leads','tasks','changeorders','requisitions'];
+
+function exportAllData(){
+  const bundle = { exportedAt: new Date().toISOString(), version: 1 };
+  DATA_KEYS.forEach(k => {
+    try { bundle[k] = JSON.parse(localStorage.getItem('bh_' + k) || '[]'); }
+    catch(e){ bundle[k] = []; }
+  });
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const d    = new Date();
+  a.href     = url;
+  a.download = `BH-Dashboard-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importAllData(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const bundle = JSON.parse(e.target.result);
+      let totalAdded = 0;
+      DATA_KEYS.forEach(k => {
+        if(!Array.isArray(bundle[k])) return;
+        let existing = [];
+        try { existing = JSON.parse(localStorage.getItem('bh_' + k) || '[]'); } catch(_){}
+        const existingIds = new Set(existing.map(r => r.id));
+        const toAdd = bundle[k].filter(r => r.id && !existingIds.has(r.id));
+        if(toAdd.length){
+          localStorage.setItem('bh_' + k, JSON.stringify([...existing, ...toAdd]));
+          totalAdded += toAdd.length;
+        }
+      });
+      // Refresh all visible data
+      if(typeof refreshProposals === 'function') refreshProposals();
+      if(typeof refreshTasks     === 'function') refreshTasks();
+      if(typeof refreshClients   === 'function') refreshClients();
+      if(typeof refreshInvoices  === 'function') refreshInvoices();
+      if(typeof refreshCOs       === 'function') refreshCOs();
+      if(typeof refreshReqs      === 'function') refreshReqs();
+      alert(`✅ Import complete! ${totalAdded} new record${totalAdded !== 1 ? 's' : ''} added.`);
+    } catch(err){
+      alert('❌ Import failed — invalid file. Make sure you selected a BH Dashboard export.');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
 }
 
 init()

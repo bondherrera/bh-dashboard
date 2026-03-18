@@ -705,6 +705,7 @@ tbody tr:hover{background:var(--bg)}
   </nav>
   <div class="sidebar__footer">
     <div class="sidebar__date" id="sidebarDate"></div>
+    <div id="sync-status" style="font-size:0.7rem;margin-top:0.35rem;color:rgba(255,255,255,0.4)">☁️ Synced</div>
     <div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.75rem">
       <button onclick="exportAllData()" style="width:100%;padding:0.45em 0.75em;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.7);font-size:0.75rem;font-weight:500;cursor:pointer;text-align:left;display:flex;align-items:center;gap:0.5rem;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.13)'" onmouseout="this.style.background='rgba(255,255,255,0.07)'">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;flex-shrink:0"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
@@ -2340,9 +2341,57 @@ tbody tr:hover{background:var(--bg)}
 // ============================================================
 // DATA STORE — persists to localStorage automatically
 // ============================================================
+/* ── CLOUD DB (JSONBin.io) ───────────────────────────────── */
+const CLOUD = {
+  binId: '69bb392db7ec241ddc7f3cab',
+  key:   '$2a$10$NP0toOIKYkxfRnundyBgd.ckEb.QO/dqOrTI4A.hwY./LP0oklxZG',
+  url()  { return `https://api.jsonbin.io/v3/b/${this.binId}` },
+  headers(){ return { 'Content-Type':'application/json', 'X-Master-Key': this.key } },
+
+  // Pull latest data from cloud → store in localStorage cache → refresh UI
+  async pull(){
+    try {
+      const r = await fetch(this.url(), { headers: this.headers() })
+      if(!r.ok) throw new Error('pull failed')
+      const json = await r.json()
+      const data = json.record
+      const keys = ['proposals','transactions','invoices','bids','projects','clients','estimates','leads','tasks','changeorders','requisitions']
+      keys.forEach(k => { if(Array.isArray(data[k])) localStorage.setItem('bh_'+k, JSON.stringify(data[k])) })
+      return data
+    } catch(e){ console.warn('Cloud pull failed, using local cache:', e); return null }
+  },
+
+  // Push all localStorage data up to cloud
+  async push(){
+    try {
+      const keys = ['proposals','transactions','invoices','bids','projects','clients','estimates','leads','tasks','changeorders','requisitions']
+      const body = {}
+      keys.forEach(k => { try{ body[k]=JSON.parse(localStorage.getItem('bh_'+k)||'[]') }catch(_){ body[k]=[] } })
+      const r = await fetch(this.url(), { method:'PUT', headers: this.headers(), body: JSON.stringify(body) })
+      if(!r.ok) throw new Error('push failed')
+    } catch(e){ console.warn('Cloud push failed:', e) }
+  }
+}
+
+// Show a subtle sync indicator in the sidebar
+function setSyncStatus(state){
+  const el = document.getElementById('sync-status')
+  if(!el) return
+  if(state==='syncing') { el.textContent='⏳ Syncing...'; el.style.color='rgba(255,255,255,0.5)' }
+  else if(state==='ok') { el.textContent='☁️ Synced';    el.style.color='rgba(255,255,255,0.4)' }
+  else                  { el.textContent='⚠️ Offline';   el.style.color='#f87171' }
+}
+
 const DB = {
   load(key){ try{ return JSON.parse(localStorage.getItem('bh_'+key)||'[]') }catch(e){ return [] } },
-  save(key,data){ localStorage.setItem('bh_'+key, JSON.stringify(data)) },
+  save(key,data){
+    localStorage.setItem('bh_'+key, JSON.stringify(data))
+    // Debounced cloud push — waits 1.5s after last save to avoid hammering the API
+    clearTimeout(DB._pushTimer)
+    setSyncStatus('syncing')
+    DB._pushTimer = setTimeout(async ()=>{ await CLOUD.push(); setSyncStatus('ok') }, 1500)
+  },
+  _pushTimer: null,
   get transactions(){ return this.load('transactions') },
   set transactions(v){ this.save('transactions',v) },
   get invoices(){ return this.load('invoices') },
@@ -4718,13 +4767,27 @@ function init(){
   } catch(e){ console.error('init dates error:', e) }
 
   // Refresh all data — each wrapped so one failure can't block others
-  try{ refreshOverview() }catch(e){ console.error('refreshOverview error:',e) }
-  try{ refreshCRM() }catch(e){ console.error('refreshCRM error:',e) }
-  try{ refreshEstimating() }catch(e){ console.error('refreshEstimating error:',e) }
-  try{ refreshProposals() }catch(e){ console.error('refreshProposals error:',e) }
-  try{ refreshInvoices() }catch(e){ console.error('refreshInvoices error:',e) }
-  try{ refreshTasks() }catch(e){ console.error('refreshTasks error:',e) }
-  try{ refreshFinances() }catch(e){ console.error('refreshFinances error:',e) }
+  function refreshAll(){
+    try{ refreshOverview() }catch(e){ console.error('refreshOverview error:',e) }
+    try{ refreshCRM() }catch(e){ console.error('refreshCRM error:',e) }
+    try{ refreshEstimating() }catch(e){ console.error('refreshEstimating error:',e) }
+    try{ refreshProposals() }catch(e){ console.error('refreshProposals error:',e) }
+    try{ refreshInvoices() }catch(e){ console.error('refreshInvoices error:',e) }
+    try{ refreshTasks() }catch(e){ console.error('refreshTasks error:',e) }
+    try{ refreshFinances() }catch(e){ console.error('refreshFinances error:',e) }
+  }
+
+  // Pull from cloud first, then render
+  setSyncStatus('syncing')
+  CLOUD.pull().then(()=>{ setSyncStatus('ok'); refreshAll() }).catch(()=>{ setSyncStatus('error'); refreshAll() })
+
+  // Auto-refresh from cloud every 30 seconds so both users stay in sync
+  setInterval(async ()=>{
+    setSyncStatus('syncing')
+    await CLOUD.pull()
+    setSyncStatus('ok')
+    refreshAll()
+  }, 30000)
 }
 
 // ============================================================

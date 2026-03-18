@@ -339,6 +339,7 @@ tbody tr:hover{background:var(--bg)}
 .prop-card__status--sent{background:var(--blue-bg);color:var(--blue)}
 .prop-card__status--accepted{background:var(--green-bg);color:var(--green)}
 .prop-card__status--declined{background:var(--red-bg);color:var(--red)}
+.prop-card__status--paid{background:#d1fae5;color:#065f46}
 /* Filter chips (used in CO + Req pages) */
 .filter-chip{font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:500;padding:0.3em 0.9em;border-radius:50px;border:1.5px solid var(--border2);background:transparent;color:var(--text-2);cursor:pointer;transition:all 0.18s}
 .filter-chip:hover{border-color:var(--accent);color:var(--accent)}
@@ -1273,6 +1274,7 @@ tbody tr:hover{background:var(--bg)}
             <button class="tasks-filter-btn" data-propfilter="draft"           onclick="filterProposals('draft',this)">Draft</button>
             <button class="tasks-filter-btn" data-propfilter="sent"            onclick="filterProposals('sent',this)">Sent</button>
             <button class="tasks-filter-btn" data-propfilter="accepted"        onclick="filterProposals('accepted',this)">Accepted</button>
+            <button class="tasks-filter-btn" data-propfilter="paid"            onclick="filterProposals('paid',this)">Paid 💰</button>
             <button class="tasks-filter-btn" data-propfilter="declined"        onclick="filterProposals('declined',this)">Declined</button>
           </div>
           <button class="btn btn-primary" onclick="openProposalBuilder()">
@@ -1508,6 +1510,7 @@ tbody tr:hover{background:var(--bg)}
                     <option value="draft">Draft</option>
                     <option value="sent">Sent to Client</option>
                     <option value="accepted">Accepted</option>
+                    <option value="paid">Paid ✅</option>
                     <option value="declined">Declined</option>
                   </select>
                 </div>
@@ -4677,12 +4680,25 @@ function refreshProposals(){
     grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><p>${proposals.length===0?'No proposals yet. Click <strong>New Proposal</strong> to write your first one.':'No proposals match this filter.'}</p></div>`
     return
   }
-  const sL={draft:'Draft',sent:'Sent',accepted:'Accepted',declined:'Declined'}
-  const sC={draft:'draft',sent:'sent',accepted:'accepted',declined:'declined'}
+  const sL={draft:'Draft',sent:'Sent',accepted:'Accepted',paid:'Paid',declined:'Declined'}
+  const sC={draft:'draft',sent:'sent',accepted:'accepted',paid:'paid',declined:'declined'}
   grid.innerHTML=filtered.sort((a,b)=>(b.updated||0)-(a.updated||0)).map(p=>{
     const tl=(p.startDate&&p.endDate)?fmtDate(p.startDate)+' \u2013 '+fmtDate(p.endDate):p.duration||''
-    return `<div class="prop-card"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.45rem"><div class="prop-card__title">${p.project||p.client||'Untitled'}</div><span class="prop-card__status prop-card__status--${sC[p.status]||'draft'}">${sL[p.status]||'Draft'}</span></div><div class="prop-card__meta">${p.client?`<span>\ud83d\udc64 ${p.client}</span>`:''} ${p.date?`<span>\ud83d\udcc5 ${fmtDate(p.date)}</span>`:''} ${p.value?`<span style="color:var(--accent);font-weight:600">$${fmt(p.value)}</span>`:''}</div>${p.address?`<div style="font-size:0.77rem;color:var(--text-3);margin-top:0.3rem">\ud83d\udccd ${p.address}</div>`:''} ${tl?`<div style="font-size:0.77rem;color:var(--text-3);margin-top:0.15rem">\ud83d\udcc5 ${tl}</div>`:''} ${p.scopeOverview?`<div style="font-size:0.78rem;color:var(--text-2);margin-top:0.4rem;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.scopeOverview}</div>`:''}<div style="display:flex;gap:0.5rem;margin-top:0.85rem"><button class="btn btn-primary btn-sm" style="flex:1" onclick="openProposalBuilder(${p.id})">✏️ Edit</button><button class="btn btn-secondary btn-sm" onclick="deleteProposal(${p.id})">🗑</button></div></div>`
+    const markPaidBtn = (p.status==='sent'||p.status==='accepted') ? `<button class="btn btn-sm" style="flex:1;background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;font-weight:600" onclick="event.stopPropagation();markProposalPaid(${p.id})">💰 Mark Paid</button>` : ''
+    return `<div class="prop-card"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.45rem"><div class="prop-card__title">${p.project||p.client||'Untitled'}</div><span class="prop-card__status prop-card__status--${sC[p.status]||'draft'}">${sL[p.status]||'Draft'}</span></div><div class="prop-card__meta">${p.client?`<span>\ud83d\udc64 ${p.client}</span>`:''} ${p.date?`<span>\ud83d\udcc5 ${fmtDate(p.date)}</span>`:''} ${p.value?`<span style="color:var(--accent);font-weight:600">$${fmt(p.value)}</span>`:''}</div>${p.address?`<div style="font-size:0.77rem;color:var(--text-3);margin-top:0.3rem">\ud83d\udccd ${p.address}</div>`:''} ${tl?`<div style="font-size:0.77rem;color:var(--text-3);margin-top:0.15rem">\ud83d\udcc5 ${tl}</div>`:''} ${p.scopeOverview?`<div style="font-size:0.78rem;color:var(--text-2);margin-top:0.4rem;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.scopeOverview}</div>`:''}<div style="display:flex;gap:0.5rem;margin-top:0.85rem">${markPaidBtn}<button class="btn btn-primary btn-sm" style="flex:1" onclick="openProposalBuilder(${p.id})">✏️ Edit</button><button class="btn btn-secondary btn-sm" onclick="deleteProposal(${p.id})">🗑</button></div></div>`
   }).join('')
+}
+function markProposalPaid(id){
+  const proposals=DB.load('proposals')
+  const p=proposals.find(x=>x.id===id)
+  if(!p) return
+  p.status='paid'
+  p.paidDate=today()
+  p.updated=Date.now()
+  DB.save('proposals',proposals)
+  refreshProposals()
+  refreshInvoices()
+  refreshOverview()
 }
 // ============================================================
 // INIT

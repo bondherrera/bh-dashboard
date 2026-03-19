@@ -4777,7 +4777,7 @@ function init(){
     try{ refreshFinances() }catch(e){ console.error('refreshFinances error:',e) }
   }
 
-  // Smart startup: check if cloud has data. If empty, push local up. If has data, pull down.
+  // Startup: always pull from cloud first, then render
   setSyncStatus('syncing');
   (async ()=>{
     try {
@@ -4786,35 +4786,35 @@ function init(){
       const json = await r.json()
       const cloudData = json.record
       const keys = ['proposals','transactions','invoices','bids','projects','clients','estimates','leads','tasks','changeorders','requisitions']
-
-      // Count total cloud records
-      const cloudTotal = keys.reduce((sum,k)=> sum + (Array.isArray(cloudData[k]) ? cloudData[k].length : 0), 0)
-      // Count total local records
-      const localTotal = keys.reduce((sum,k)=>{ try{ return sum+(JSON.parse(localStorage.getItem('bh_'+k)||'[]').length) }catch(_){ return sum } }, 0)
-
-      if(cloudTotal === 0 && localTotal > 0){
-        // Cloud is empty but we have local data — push local up to cloud
-        await CLOUD.push()
-        console.log('Pushed local data to cloud:', localTotal, 'records')
-      } else {
-        // Cloud has data — pull it down into localStorage
-        keys.forEach(k => { if(Array.isArray(cloudData[k])) localStorage.setItem('bh_'+k, JSON.stringify(cloudData[k])) })
-        console.log('Pulled cloud data:', cloudTotal, 'records')
-      }
+      keys.forEach(k => { if(Array.isArray(cloudData[k])) localStorage.setItem('bh_'+k, JSON.stringify(cloudData[k])) })
       setSyncStatus('ok')
     } catch(e){
-      console.warn('Cloud sync failed, using local:', e)
+      console.warn('Cloud sync failed, using local cache:', e)
       setSyncStatus('error')
     }
     refreshAll()
   })()
 
-  // Auto-refresh from cloud every 30 seconds so both users stay in sync
+  // Auto-refresh from cloud every 30 seconds — merges new records from partner, never deletes yours
   setInterval(async ()=>{
-    setSyncStatus('syncing')
-    await CLOUD.pull()
-    setSyncStatus('ok')
-    refreshAll()
+    try {
+      const r = await fetch(CLOUD.url(), { headers: CLOUD.headers() })
+      if(!r.ok) return
+      const json = await r.json()
+      const cloudData = json.record
+      const keys = ['proposals','transactions','invoices','bids','projects','clients','estimates','leads','tasks','changeorders','requisitions']
+      let changed = false
+      keys.forEach(k => {
+        if(!Array.isArray(cloudData[k])) return
+        let local = []
+        try{ local = JSON.parse(localStorage.getItem('bh_'+k)||'[]') }catch(_){}
+        const localIds = new Set(local.map(r=>r.id))
+        const toAdd = cloudData[k].filter(r=>r.id && !localIds.has(r.id))
+        if(toAdd.length){ localStorage.setItem('bh_'+k, JSON.stringify([...local,...toAdd])); changed=true }
+      })
+      if(changed) refreshAll()
+      setSyncStatus('ok')
+    } catch(e){ setSyncStatus('error') }
   }, 30000)
 }
 

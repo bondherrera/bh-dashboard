@@ -898,6 +898,34 @@ tbody tr:hover{background:var(--bg)}
               <div id="calc-category" style="font-size:1rem;font-weight:700;color:var(--text)">—</div>
             </div>
           </div>
+
+          <!-- Save Button -->
+          <div style="margin-top:1rem;display:flex;gap:0.75rem;align-items:center">
+            <button onclick="saveCalcToList()" class="btn btn-primary" style="padding:0.6rem 1.25rem">
+              💾 Save to Cost Log
+            </button>
+            <span id="calc-save-msg" style="font-size:0.8rem;color:var(--green);display:none">✅ Saved!</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- COST LOG LIST -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-header">
+          <div><div class="card-title">📋 Cost & Profit Log</div><div class="card-sub">Saved breakdown of all your project calculations</div></div>
+          <button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red)" onclick="clearCostLog()">Clear All</button>
+        </div>
+        <div style="padding:0 1.25rem 1.25rem">
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th>Date</th><th>Proposal / Project</th><th>Proposal Price</th><th>Materials</th><th>Labor</th><th>Subs</th><th>Total Cost</th><th>Profit</th><th>Margin</th><th>Category</th><th></th>
+              </tr></thead>
+              <tbody id="cost-log-body">
+                <tr><td colspan="11"><div class="empty-state"><p>No entries yet. Fill out the calculator above and click "Save to Cost Log".</p></div></td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -2566,6 +2594,78 @@ function deleteTransaction(id){
   refreshOverview()
 }
 
+function saveCalcToList(){
+  const proposal = parseFloat(document.getElementById('calc-proposal').value) || 0;
+  const materials = parseFloat(document.getElementById('calc-materials').value) || 0;
+  const labor = parseFloat(document.getElementById('calc-labor').value) || 0;
+  const subs = parseFloat(document.getElementById('calc-subs').value) || 0;
+  if(proposal === 0 && materials === 0 && labor === 0 && subs === 0) return;
+  const totalCost = materials + labor + subs;
+  const profit = proposal - totalCost;
+  const margin = proposal > 0 ? (profit / proposal) * 100 : 0;
+  let category = '—';
+  if(proposal > 0){
+    if(margin>=30) category='🟢 Excellent';
+    else if(margin>=20) category='🔵 Good';
+    else if(margin>=10) category='🟡 Fair';
+    else if(margin>=0) category='🟠 Low';
+    else category='🔴 Loss';
+  }
+  const sel = document.getElementById('calc-proposal-select');
+  const proposalName = sel && sel.selectedIndex > 0 ? sel.options[sel.selectedIndex].text.split('  (')[0] : 'Manual Entry';
+  const entry = {
+    id: Date.now(),
+    date: new Date().toLocaleDateString(),
+    proposalName,
+    proposal, materials, labor, subs, totalCost, profit, margin, category
+  };
+  const log = DB.load('costLog') || [];
+  log.unshift(entry);
+  DB.save('costLog', log);
+  renderCostLog();
+  const msg = document.getElementById('calc-save-msg');
+  msg.style.display = 'inline';
+  setTimeout(() => msg.style.display = 'none', 2000);
+}
+
+function clearCostLog(){
+  if(!confirm('Clear all saved cost entries?')) return;
+  DB.save('costLog', []);
+  renderCostLog();
+}
+
+function deleteCostEntry(id){
+  const log = (DB.load('costLog') || []).filter(e => e.id !== id);
+  DB.save('costLog', log);
+  renderCostLog();
+}
+
+function renderCostLog(){
+  const log = DB.load('costLog') || [];
+  const tbody = document.getElementById('cost-log-body');
+  if(!tbody) return;
+  const fmt = n => '$' + Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(log.length === 0){
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><p>No entries yet. Fill out the calculator above and click "Save to Cost Log".</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = log.map(e => `
+    <tr>
+      <td>${e.date}</td>
+      <td>${e.proposalName}</td>
+      <td>${fmt(e.proposal)}</td>
+      <td>${fmt(e.materials)}</td>
+      <td>${fmt(e.labor)}</td>
+      <td>${fmt(e.subs)}</td>
+      <td style="color:var(--red)">${fmt(e.totalCost)}</td>
+      <td style="color:${e.profit>=0?'var(--green)':'var(--red)'}">${e.profit<0?'-':''}${fmt(Math.abs(e.profit))}</td>
+      <td style="color:${e.profit>=0?'var(--green)':'var(--red)'}">${e.margin.toFixed(1)}%</td>
+      <td>${e.category}</td>
+      <td><button onclick="deleteCostEntry(${e.id})" style="background:none;border:none;color:var(--text-3);cursor:pointer;font-size:1rem">🗑</button></td>
+    </tr>
+  `).join('');
+}
+
 function populateProposalSelect(){
   const proposals = DB.load('proposals') || [];
   const sel = document.getElementById('calc-proposal-select');
@@ -2627,6 +2727,7 @@ function resetProfitCalc(){
 }
 function refreshFinances(){
   populateProposalSelect();
+  renderCostLog();
   const txs = DB.transactions
   let income=0, expenses=0
   txs.forEach(t => { if(t.type==='income') income+=t.amount; else expenses+=t.amount })

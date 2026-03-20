@@ -837,6 +837,62 @@ tbody tr:hover{background:var(--bg)}
         </div>
       </div>
 
+      <!-- ── PROFIT CALCULATOR ── -->
+      <div class="card" style="margin-bottom:1.25rem">
+        <div class="card-header">
+          <div><div class="card-title">💰 Profit Calculator</div><div class="card-sub">Enter project costs & proposal price to calculate profit</div></div>
+          <button class="btn btn-sm" style="background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent)" onclick="resetProfitCalc()">Reset</button>
+        </div>
+        <div style="padding:1.25rem">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.25rem">
+            <div>
+              <label style="font-size:0.75rem;font-weight:600;color:var(--text-2);letter-spacing:0.05em;display:block;margin-bottom:0.4rem">PROPOSAL PRICE ($)</label>
+              <input type="number" id="calc-proposal" placeholder="0.00" min="0" step="0.01"
+                style="width:100%;padding:0.6rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:0.95rem"
+                oninput="updateProfitCalc()">
+            </div>
+            <div>
+              <label style="font-size:0.75rem;font-weight:600;color:var(--text-2);letter-spacing:0.05em;display:block;margin-bottom:0.4rem">MATERIALS ($)</label>
+              <input type="number" id="calc-materials" placeholder="0.00" min="0" step="0.01"
+                style="width:100%;padding:0.6rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:0.95rem"
+                oninput="updateProfitCalc()">
+            </div>
+            <div>
+              <label style="font-size:0.75rem;font-weight:600;color:var(--text-2);letter-spacing:0.05em;display:block;margin-bottom:0.4rem">LABOR ($)</label>
+              <input type="number" id="calc-labor" placeholder="0.00" min="0" step="0.01"
+                style="width:100%;padding:0.6rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:0.95rem"
+                oninput="updateProfitCalc()">
+            </div>
+            <div>
+              <label style="font-size:0.75rem;font-weight:600;color:var(--text-2);letter-spacing:0.05em;display:block;margin-bottom:0.4rem">SUBCONTRACTORS ($)</label>
+              <input type="number" id="calc-subs" placeholder="0.00" min="0" step="0.01"
+                style="width:100%;padding:0.6rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:0.95rem"
+                oninput="updateProfitCalc()">
+            </div>
+          </div>
+
+          <!-- Results -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:0.75rem">
+            <div style="background:var(--bg2);border-radius:var(--radius);padding:1rem;border:1px solid var(--border)">
+              <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.08em;color:var(--text-3);margin-bottom:0.35rem">TOTAL COSTS</div>
+              <div id="calc-total-cost" style="font-size:1.4rem;font-weight:700;color:var(--red)">$0.00</div>
+            </div>
+            <div style="background:var(--bg2);border-radius:var(--radius);padding:1rem;border:1px solid var(--border)">
+              <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.08em;color:var(--text-3);margin-bottom:0.35rem">GROSS PROFIT</div>
+              <div id="calc-profit" style="font-size:1.4rem;font-weight:700;color:var(--green)">$0.00</div>
+            </div>
+            <div style="background:var(--bg2);border-radius:var(--radius);padding:1rem;border:1px solid var(--border)">
+              <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.08em;color:var(--text-3);margin-bottom:0.35rem">PROFIT MARGIN</div>
+              <div id="calc-margin" style="font-size:1.4rem;font-weight:700;color:var(--text)">0%</div>
+            </div>
+            <div style="background:var(--bg2);border-radius:var(--radius);padding:1rem;border:1px solid var(--border)">
+              <div style="font-size:0.7rem;font-weight:600;letter-spacing:0.08em;color:var(--text-3);margin-bottom:0.35rem">CATEGORY</div>
+              <div id="calc-category" style="font-size:1rem;font-weight:700;color:var(--text)">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-header">
           <div><div class="card-title">Transaction Log</div><div class="card-sub">All income & expenses</div></div>
@@ -946,7 +1002,7 @@ tbody tr:hover{background:var(--bg)}
             <div>
               <div style="font-size:1.6rem;font-weight:800;color:#1C1714">BH LUXURY BUILDS <span style="color:#C1623F">&amp;</span> REMODELS</div>
               <div style="font-size:0.85rem;color:#666;margin-top:0.25rem">Scottsdale's Premier Luxury Contractor</div>
-              <div style="font-size:0.8rem;color:#666;margin-top:0.15rem">📞 480-406-8742 &nbsp;|&nbsp; ✉ Bondherrera1@gmail.com &nbsp;|&nbsp; Scottsdale, AZ</div>
+              <div style="font-size:0.8rem;color:#666;margin-top:0.15rem">📞 480-406-8742 &nbsp;|&nbsp; ✉ <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="fdbf92939995988f8f988f9cccbd9a909c9491d39e9290">[email&#160;protected]</a> &nbsp;|&nbsp; Scottsdale, AZ</div>
             </div>
             <div style="text-align:right">
               <div style="font-size:1.1rem;font-weight:700;color:#C1623F" id="est-print-num">ESTIMATE #</div>
@@ -1026,9 +1082,7 @@ tbody tr:hover{background:var(--bg)}
             </div>
 
             <!-- Scope / exclusions (print) -->
-            <div class="card" style="margin-top:1rem">
-              <div class="card-header"><div class="card-title">Scope Notes & Exclusions</div></div>
-              <textarea class="form-textarea" id="eb-scope" style="min-height:100px" placeholder="Describe what IS included in this estimate...&#10;&#10;EXCLUSIONS: List what is NOT included (permits, HOA, appliances, etc.)&#10;&#10;PAYMENT SCHEDULE: 30% deposit, 30% at rough-in, 30% substantial completion, 10% final walkthrough&#10;&#10;VALIDITY: This estimate is valid for 30 days from the date above."></textarea>
+            <div class="card" style="margin-toextarea class="form-textarea" id="eb-scope" style="min-height:100px" placeholder="Describe what IS included in this estimate...&#10;&#10;EXCLUSIONS: List what is NOT included (permits, HOA, appliances, etc.)&#10;&#10;PAYMENT SCHEDULE: 30% deposit, 30% at rough-in, 30% substantial completion, 10% final walkthrough&#10;&#10;VALIDITY: This estimate is valid for 30 days from the date above."></textarea>
             </div>
           </div>
 
@@ -2504,6 +2558,43 @@ function deleteTransaction(id){
   refreshOverview()
 }
 
+function updateProfitCalc(){
+  const proposal = parseFloat(document.getElementById("calc-proposal").value) || 0;
+  const materials = parseFloat(document.getElementById("calc-materials").value) || 0;
+  const labor = parseFloat(document.getElementById("calc-labor").value) || 0;
+  const subs = parseFloat(document.getElementById("calc-subs").value) || 0;
+  const totalCost = materials + labor + subs;
+  const profit = proposal - totalCost;
+  const margin = proposal > 0 ? (profit / proposal) * 100 : 0;
+  let category = "2014", categoryColor = "var(--text)";
+  if (proposal > 0) {
+    if (margin >= 30) { category = "D83dDfe2 Excellent (30%+)"; categoryColor = "var(--green)"; }
+    else if (margin >= 20) { category = "D83dDd35 Good (20-30%)"; categoryColor = "var(--blue)"; }
+    else if (margin >= 10) { category = "D83dDfe1 Fair (10-20%)"; categoryColor = "var(--yellow)"; }
+    else if (margin >= 0) { category = "D83dDfe0 Low (0-10%)"; categoryColor = "#E07B39"; }
+    else { category = "D83dDd34 Loss"; categoryColor = "var(--red)"; }
+  }
+  const fmt2 = n => "$" + Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById("calc-total-cost").textContent = fmt2(totalCost);
+  const profEl = document.getElementById("calc-profit");
+  profEl.textContent = (profit < 0 ? "-" : "") + fmt2(profit);
+  profEl.style.color = profit >= 0 ? "var(--green)" : "var(--red)";
+  const marginEl = document.getElementById("calc-margin");
+  marginEl.textContent = margin.toFixed(1) + "%";
+  marginEl.style.color = profit >= 0 ? "var(--green)" : "var(--red)";
+  const catEl = document.getElementById("calc-category");
+  catEl.textContent = category;
+  catEl.style.color = categoryColor;
+}
+function resetProfitCalc(){
+  ["calc-proposal","calc-materials","calc-labor","calc-subs"].forEach(id => { document.getElementById(id).value = ""; });
+  ["calc-total-cost","calc-profit"].forEach(id => { document.getElementById(id).textContent = "$0.00"; });
+  document.getElementById("calc-profit").style.color = "var(--green)";
+  document.getElementById("calc-margin").textContent = "0%";
+  document.getElementById("calc-margin").style.color = "var(--text)";
+  document.getElementById("calc-category").textContent = "2014";
+  document.getElementById("calc-category").style.color = "var(--text)";
+}
 function refreshFinances(){
   const txs = DB.transactions
   let income=0, expenses=0

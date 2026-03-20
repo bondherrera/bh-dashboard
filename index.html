@@ -844,6 +844,14 @@ tbody tr:hover{background:var(--bg)}
           <button class="btn btn-sm" style="background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent)" onclick="resetProfitCalc()">Reset</button>
         </div>
         <div style="padding:1.25rem">
+          <!-- Proposal Selector -->
+          <div style="margin-bottom:1rem">
+            <label style="font-size:0.75rem;font-weight:600;color:var(--text-2);letter-spacing:0.05em;display:block;margin-bottom:0.4rem">SELECT A PROPOSAL (optional — auto-fills price)</label>
+            <select id="calc-proposal-select" onchange="loadProposalIntoCalc()"
+              style="width:100%;padding:0.6rem 0.75rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-size:0.95rem">
+              <option value="">— Select a proposal to load its price —</option>
+            </select>
+          </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.25rem">
             <div>
               <label style="font-size:0.75rem;font-weight:600;color:var(--text-2);letter-spacing:0.05em;display:block;margin-bottom:0.4rem">PROPOSAL PRICE ($)</label>
@@ -1370,7 +1378,7 @@ tbody tr:hover{background:var(--bg)}
                   <div class="prop-logo-circle">BH</div>
                   <div>
                     <div style="font-size:1.5rem;font-weight:800;color:#1C1714;line-height:1.1">BH LUXURY BUILDS <span style="color:#C1623F">&amp;</span> REMODELS</div>
-                    <div style="font-size:0.8rem;color:#888;margin-top:0.15rem">Scottsdale's Premier Luxury Contractor &nbsp;|&nbsp; 480-406-8742 &nbsp;|&nbsp; Bondherrera1@gmail.com</div>
+                    <div style="font-size:0.8rem;color:#888;margin-top:0.15rem">Scottsdale's Premier Luxury Contractor &nbsp;|&nbsp; 480-406-8742 &nbsp;|&nbsp; <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="581a37363c303d2a2a3d2a3969183f35393134763b3735">[email&#160;protected]</a></div>
                   </div>
                 </div>
                 <div style="text-align:right">
@@ -2391,7 +2399,7 @@ tbody tr:hover{background:var(--bg)}
 <!-- ============================================================
      JAVASCRIPT
      ============================================================ -->
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ============================================================
 // DATA STORE — persists to localStorage automatically
 // ============================================================
@@ -2558,6 +2566,28 @@ function deleteTransaction(id){
   refreshOverview()
 }
 
+function populateProposalSelect(){
+  const proposals = DB.load('proposals') || [];
+  const sel = document.getElementById('calc-proposal-select');
+  if(!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">— Select a proposal to load its price —</option>';
+  proposals.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.value || '';
+    opt.textContent = (p.client || 'Unknown') + ' — ' + (p.project || 'No project') + (p.value ? '  ($' + Number(p.value).toLocaleString() + ')' : '');
+    sel.appendChild(opt);
+  });
+  if(current) sel.value = current;
+}
+function loadProposalIntoCalc(){
+  const sel = document.getElementById('calc-proposal-select');
+  const val = sel.value;
+  if(val) {
+    document.getElementById('calc-proposal').value = val;
+    updateProfitCalc();
+  }
+}
 function updateProfitCalc(){
   const proposal = parseFloat(document.getElementById("calc-proposal").value) || 0;
   const materials = parseFloat(document.getElementById("calc-materials").value) || 0;
@@ -2596,6 +2626,7 @@ function resetProfitCalc(){
   document.getElementById("calc-category").style.color = "var(--text)";
 }
 function refreshFinances(){
+  populateProposalSelect();
   const txs = DB.transactions
   let income=0, expenses=0
   txs.forEach(t => { if(t.type==='income') income+=t.amount; else expenses+=t.amount })
@@ -5480,14 +5511,4 @@ init()
 
 <!-- ============================================================
      PROPOSAL PDF VIEW (only visible when printing)
-     ============================================================ -->
-<div id="prop-pdf-view">
-  <div class="pdf-wrap">
-    <div class="pdf-page" id="pdf-page-content">
-      <!-- Populated by buildPropPDF() before printing -->
-    </div>
-  </div>
-</div>
-
-</body>
-</html>
+     ==================================

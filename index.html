@@ -4979,10 +4979,12 @@ function updateDepRemainder(id){
   if(!p) return
   const depTotal = depositAmount(p)
   const subEl = document.getElementById('dep-subpaid-'+id)
+  const costEl = document.getElementById('dep-mycost-'+id)
   const profEl = document.getElementById('dep-profit-'+id)
   const subPaid = parseFloat(subEl && subEl.value)||0
+  const myCost = parseFloat(costEl && costEl.value)||0
   const profitPaid = parseFloat(profEl && profEl.value)||0
-  const rem = depTotal - subPaid - profitPaid
+  const rem = depTotal - subPaid - myCost - profitPaid
   const out = document.getElementById('dep-remainder-'+id)
   if(!out) return
   out.textContent = (rem<0?'-':'') + '$' + Math.abs(rem).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
@@ -4999,9 +5001,10 @@ function saveDepositTracker(id){
   const g = i => document.getElementById(i)
   const subName = ((g('dep-subname-'+id)||{}).value || '').trim()
   const subPaid = parseFloat((g('dep-subpaid-'+id)||{}).value)||0
+  const myCost = parseFloat((g('dep-mycost-'+id)||{}).value)||0
   const profitPaid = parseFloat((g('dep-profit-'+id)||{}).value)||0
   const note = ((g('dep-note-'+id)||{}).value || '').trim()
-  p.depositTracker = { subName, subPaid, profitPaid, note, updated: Date.now() }
+  p.depositTracker = { subName, subPaid, myCost, profitPaid, note, updated: Date.now() }
   DB.save('proposals', proposals)
   refreshProposals()
 }
@@ -5028,15 +5031,16 @@ function refreshProposals(){
     const dt = p.depositTracker || {}
     const depTotal = depositAmount(p)
     const subPaidVal = parseFloat(dt.subPaid)||0
+    const myCostVal = parseFloat(dt.myCost)||0
     const profitPaidVal = parseFloat(dt.profitPaid)||0
-    const rem = depTotal - subPaidVal - profitPaidVal
+    const rem = depTotal - subPaidVal - myCostVal - profitPaidVal
     const remClass = rem===0 ? 'dep-ok' : (rem<0 ? 'dep-over' : 'dep-open')
     const remDisplay = (rem<0?'-':'') + '$' + Math.abs(rem).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
-    const hasTrackerData = !!(dt.subPaid || dt.profitPaid || dt.subName || dt.note)
-    const depSummary = hasTrackerData ? `<div class="dep-summary ${remClass}">🧾 Sub ${fmt(subPaidVal)} · You ${fmt(profitPaidVal)} · Left ${remDisplay}</div>` : ''
+    const hasTrackerData = !!(dt.subPaid || dt.myCost || dt.profitPaid || dt.subName || dt.note)
+    const depSummary = hasTrackerData ? `<div class="dep-summary ${remClass}">🧾 Sub ${fmt(subPaidVal)} · Cost ${fmt(myCostVal)} · You ${fmt(profitPaidVal)} · Left ${remDisplay}</div>` : ''
     const lastSaved = dt.updated ? `<div class="dep-updated">Last saved ${new Date(dt.updated).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>` : ''
     const front = `<div class="prop-card prop-card-front"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.45rem"><div class="prop-card__title">${p.project||p.client||'Untitled'}</div><span class="prop-card__status prop-card__status--${sC[p.status]||'draft'}">${sL[p.status]||'Draft'}</span></div><div class="prop-card__meta">${p.client?`<span>👤 ${p.client}</span>`:''} ${p.date?`<span>📅 ${fmtDate(p.date)}</span>`:''} ${p.value?`<span style="color:var(--accent);font-weight:600">$${fmt(p.value)}</span>`:''}</div>${p.address?`<div style="font-size:0.77rem;color:var(--text-3);margin-top:0.3rem">📍 ${p.address}</div>`:''} ${tl?`<div style="font-size:0.77rem;color:var(--text-3);margin-top:0.15rem">📅 ${tl}</div>`:''} ${p.scopeOverview?`<div style="font-size:0.78rem;color:var(--text-2);margin-top:0.4rem;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.scopeOverview}</div>`:''}${depSummary}<div style="display:flex;gap:0.5rem;margin-top:0.85rem">${markPaidBtn}<button class="btn btn-primary btn-sm" style="flex:1" onclick="event.stopPropagation();openProposalBuilder(${p.id})">✏️ Edit</button><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();deleteProposal(${p.id})">🗑</button></div><button class="btn btn-secondary btn-sm dep-track-btn" style="width:100%;margin-top:0.5rem" onclick="event.stopPropagation();toggleDepositTracker(${p.id})">💵 ${hasTrackerData?'Edit Deposit Tracker':'Track Deposit Payout'}</button></div>`
-    const back = `<div class="prop-card prop-card-back"><div class="dep-back-header"><strong>💵 Deposit Tracker</strong><button class="btn-icon btn-sm" onclick="event.stopPropagation();toggleDepositTracker(${p.id})" title="Back to proposal">✕</button></div><div class="dep-back-sub">${p.project||p.client||'Untitled'}</div><div class="dep-line"><span>Deposit Received (${p.paymentType==='full'?'100':(p.depPct||50)}%)</span><strong>${fmt(depTotal)}</strong></div><div class="form-group"><label class="form-label">Paid to Sub</label><div style="display:flex;gap:0.4rem"><input type="text" class="form-input" id="dep-subname-${p.id}" placeholder="Sub name" value="${escAttr(dt.subName)}" style="flex:1.3"><input type="number" class="form-input" id="dep-subpaid-${p.id}" placeholder="$0.00" value="${dt.subPaid||''}" style="flex:1" oninput="updateDepRemainder(${p.id})"></div></div><div class="form-group"><label class="form-label">Profit Paid to You</label><input type="number" class="form-input" id="dep-profit-${p.id}" placeholder="$0.00" value="${dt.profitPaid||''}" oninput="updateDepRemainder(${p.id})"></div><div class="dep-line dep-remainder ${remClass}"><span>Remainder Left</span><strong id="dep-remainder-${p.id}">${remDisplay}</strong></div><div class="form-group"><label class="form-label">Note</label><input type="text" class="form-input" id="dep-note-${p.id}" placeholder="e.g. paid via Zelle 9/12" value="${escAttr(dt.note)}"></div>${lastSaved}<button class="btn btn-primary btn-sm" style="width:100%;margin-top:0.6rem" onclick="event.stopPropagation();saveDepositTracker(${p.id})">💾 Save</button></div>`
+    const back = `<div class="prop-card prop-card-back"><div class="dep-back-header"><strong>💵 Deposit Tracker</strong><button class="btn-icon btn-sm" onclick="event.stopPropagation();toggleDepositTracker(${p.id})" title="Back to proposal">✕</button></div><div class="dep-back-sub">${p.project||p.client||'Untitled'}</div><div class="dep-line"><span>Deposit Received (${p.paymentType==='full'?'100':(p.depPct||50)}%)</span><strong>${fmt(depTotal)}</strong></div><div class="form-group"><label class="form-label">Paid to Sub</label><div style="display:flex;gap:0.4rem"><input type="text" class="form-input" id="dep-subname-${p.id}" placeholder="Sub name" value="${escAttr(dt.subName)}" style="flex:1.3"><input type="number" class="form-input" id="dep-subpaid-${p.id}" placeholder="$0.00" value="${dt.subPaid||''}" style="flex:1" oninput="updateDepRemainder(${p.id})"></div></div><div class="form-group"><label class="form-label">My Cost (materials, other)</label><input type="number" class="form-input" id="dep-mycost-${p.id}" placeholder="$0.00" value="${dt.myCost||''}" oninput="updateDepRemainder(${p.id})"></div><div class="form-group"><label class="form-label">Profit Paid to You</label><input type="number" class="form-input" id="dep-profit-${p.id}" placeholder="$0.00" value="${dt.profitPaid||''}" oninput="updateDepRemainder(${p.id})"></div><div class="dep-line dep-remainder ${remClass}"><span>Remainder Left</span><strong id="dep-remainder-${p.id}">${remDisplay}</strong></div><div class="form-group"><label class="form-label">Note</label><input type="text" class="form-input" id="dep-note-${p.id}" placeholder="e.g. paid via Zelle 9/12" value="${escAttr(dt.note)}"></div>${lastSaved}<button class="btn btn-primary btn-sm" style="width:100%;margin-top:0.6rem" onclick="event.stopPropagation();saveDepositTracker(${p.id})">💾 Save</button></div>`
     return `<div class="prop-card-flip" id="flipwrap-${p.id}"><div class="prop-card-flip-inner">${front}${back}</div></div>`
   }).join('')
 }

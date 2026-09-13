@@ -359,6 +359,10 @@ tbody tr:hover{background:var(--bg)}
 .dep-summary.dep-open{background:var(--yellow-bg);color:var(--yellow)}
 .dep-summary.dep-over{background:var(--red-bg);color:var(--red)}
 .dep-track-btn{border-style:dashed}
+.dep-banner{display:flex;align-items:center;justify-content:space-between;gap:0.5rem;padding:0.55rem 0.75rem;border-radius:var(--radius-sm);font-size:0.8rem;font-weight:600;margin-top:0.6rem}
+.dep-banner-paid{background:var(--green-bg);color:var(--green)}
+.dep-banner-remaining{background:var(--red-bg);color:var(--red)}
+.dep-banner__amt{font-size:0.9rem;white-space:nowrap}
 /* Filter chips (used in CO + Req pages) */
 .filter-chip{font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:500;padding:0.3em 0.9em;border-radius:50px;border:1.5px solid var(--border2);background:transparent;color:var(--text-2);cursor:pointer;transition:all 0.18s}
 .filter-chip:hover{border-color:var(--accent);color:var(--accent)}
@@ -5027,9 +5031,16 @@ function refreshProposals(){
   const sC={draft:'draft',sent:'sent',accepted:'accepted',paid:'paid',declined:'declined'}
   grid.innerHTML=filtered.sort((a,b)=>(b.updated||0)-(a.updated||0)).map(p=>{
     const tl=(p.startDate&&p.endDate)?fmtDate(p.startDate)+' – '+fmtDate(p.endDate):p.duration||''
+    const isDepositPaid = p.status==='paid'
+    const isFullyPaid = !!p.fullyPaid
     const markPaidBtn = (p.status==='sent'||p.status==='accepted') ? `<button class="btn btn-sm" style="flex:1;background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;font-weight:600" onclick="event.stopPropagation();markProposalPaid(${p.id})">💰 Mark Paid</button>` : ''
+    const paidInFullBtn = (isDepositPaid && !isFullyPaid) ? `<button class="btn btn-sm" style="flex:1;background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;font-weight:600" onclick="event.stopPropagation();markProposalPaidInFull(${p.id})">✅ Paid in Full</button>` : ''
     const dt = p.depositTracker || {}
     const depTotal = depositAmount(p)
+    const finalAmt = Math.max((parseFloat(p.value)||0) - depTotal, 0)
+    const depositBanner = (isDepositPaid && !isFullyPaid) ? `<div class="dep-banner dep-banner-paid"><span>✅ Deposit Paid${p.paidDate?'  '+fmtDate(p.paidDate):''}</span><span class="dep-banner__amt">${fmt(depTotal)}</span></div>` : ''
+    const finalBanner = (isDepositPaid && !isFullyPaid) ? `<div class="dep-banner dep-banner-remaining"><span>🔔 Final Payment Remaining</span><span class="dep-banner__amt">${fmt(finalAmt)}</span></div>` : ''
+    const paidInFullBanner = isFullyPaid ? `<div class="dep-banner dep-banner-paid"><span>✅ Paid in Full${p.finalPaidDate?'  '+fmtDate(p.finalPaidDate):''}</span><span class="dep-banner__amt">${fmt(p.value)}</span></div>` : ''
     const subPaidVal = parseFloat(dt.subPaid)||0
     const myCostVal = parseFloat(dt.myCost)||0
     const profitPaidVal = parseFloat(dt.profitPaid)||0
@@ -5039,7 +5050,7 @@ function refreshProposals(){
     const hasTrackerData = !!(dt.subPaid || dt.myCost || dt.profitPaid || dt.subName || dt.note)
     const depSummary = hasTrackerData ? `<div class="dep-summary ${remClass}">🧾 Sub ${fmt(subPaidVal)} · Cost ${fmt(myCostVal)} · You ${fmt(profitPaidVal)} · Left ${remDisplay}</div>` : ''
     const lastSaved = dt.updated ? `<div class="dep-updated">Last saved ${new Date(dt.updated).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</div>` : ''
-    const front = `<div class="prop-card prop-card-front"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.45rem"><div class="prop-card__title">${p.project||p.client||'Untitled'}</div><span class="prop-card__status prop-card__status--${sC[p.status]||'draft'}">${sL[p.status]||'Draft'}</span></div><div class="prop-card__meta">${p.client?`<span>👤 ${p.client}</span>`:''} ${p.date?`<span>📅 ${fmtDate(p.date)}</span>`:''} ${p.value?`<span style="color:var(--accent);font-weight:600">$${fmt(p.value)}</span>`:''}</div>${p.address?`<div style="font-size:0.77rem;color:var(--text-3);margin-top:0.3rem">📍 ${p.address}</div>`:''} ${tl?`<div style="font-size:0.77rem;color:var(--text-3);margin-top:0.15rem">📅 ${tl}</div>`:''} ${p.scopeOverview?`<div style="font-size:0.78rem;color:var(--text-2);margin-top:0.4rem;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.scopeOverview}</div>`:''}${depSummary}<div style="display:flex;gap:0.5rem;margin-top:0.85rem">${markPaidBtn}<button class="btn btn-primary btn-sm" style="flex:1" onclick="event.stopPropagation();openProposalBuilder(${p.id})">✏️ Edit</button><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();deleteProposal(${p.id})">🗑</button></div><button class="btn btn-secondary btn-sm dep-track-btn" style="width:100%;margin-top:0.5rem" onclick="event.stopPropagation();toggleDepositTracker(${p.id})">💵 ${hasTrackerData?'Edit Deposit Tracker':'Track Deposit Payout'}</button></div>`
+    const front = `<div class="prop-card prop-card-front"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.5rem;margin-bottom:0.45rem"><div class="prop-card__title">${p.project||p.client||'Untitled'}</div><span class="prop-card__status prop-card__status--${sC[p.status]||'draft'}">${sL[p.status]||'Draft'}</span></div><div class="prop-card__meta">${p.client?`<span>👤 ${p.client}</span>`:''} ${p.date?`<span>📅 ${fmtDate(p.date)}</span>`:''} ${p.value?`<span style="color:var(--accent);font-weight:600">$${fmt(p.value)}</span>`:''}</div>${p.address?`<div style="font-size:0.77rem;color:var(--text-3);margin-top:0.3rem">📍 ${p.address}</div>`:''} ${tl?`<div style="font-size:0.77rem;color:var(--text-3);margin-top:0.15rem">📅 ${tl}</div>`:''} ${p.scopeOverview?`<div style="font-size:0.78rem;color:var(--text-2);margin-top:0.4rem;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.scopeOverview}</div>`:''}${depositBanner}${finalBanner}${paidInFullBanner}${depSummary}<div style="display:flex;gap:0.5rem;margin-top:0.85rem">${markPaidBtn}${paidInFullBtn}<button class="btn btn-primary btn-sm" style="flex:1" onclick="event.stopPropagation();openProposalBuilder(${p.id})">✏️ Edit</button><button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();deleteProposal(${p.id})">🗑</button></div><button class="btn btn-secondary btn-sm dep-track-btn" style="width:100%;margin-top:0.5rem" onclick="event.stopPropagation();toggleDepositTracker(${p.id})">💵 ${hasTrackerData?'Edit Deposit Tracker':'Track Deposit Payout'}</button></div>`
     const back = `<div class="prop-card prop-card-back"><div class="dep-back-header"><strong>💵 Deposit Tracker</strong><button class="btn-icon btn-sm" onclick="event.stopPropagation();toggleDepositTracker(${p.id})" title="Back to proposal">✕</button></div><div class="dep-back-sub">${p.project||p.client||'Untitled'}</div><div class="dep-line"><span>Deposit Received (${p.paymentType==='full'?'100':(p.depPct||50)}%)</span><strong>${fmt(depTotal)}</strong></div><div class="form-group"><label class="form-label">Paid to Sub</label><div style="display:flex;gap:0.4rem"><input type="text" class="form-input" id="dep-subname-${p.id}" placeholder="Sub name" value="${escAttr(dt.subName)}" style="flex:1.3"><input type="number" class="form-input" id="dep-subpaid-${p.id}" placeholder="$0.00" value="${dt.subPaid||''}" style="flex:1" oninput="updateDepRemainder(${p.id})"></div></div><div class="form-group"><label class="form-label">My Cost (materials, other)</label><input type="number" class="form-input" id="dep-mycost-${p.id}" placeholder="$0.00" value="${dt.myCost||''}" oninput="updateDepRemainder(${p.id})"></div><div class="form-group"><label class="form-label">Profit Paid to You</label><input type="number" class="form-input" id="dep-profit-${p.id}" placeholder="$0.00" value="${dt.profitPaid||''}" oninput="updateDepRemainder(${p.id})"></div><div class="dep-line dep-remainder ${remClass}"><span>Remainder Left</span><strong id="dep-remainder-${p.id}">${remDisplay}</strong></div><div class="form-group"><label class="form-label">Note</label><input type="text" class="form-input" id="dep-note-${p.id}" placeholder="e.g. paid via Zelle 9/12" value="${escAttr(dt.note)}"></div>${lastSaved}<button class="btn btn-primary btn-sm" style="width:100%;margin-top:0.6rem" onclick="event.stopPropagation();saveDepositTracker(${p.id})">💾 Save</button></div>`
     return `<div class="prop-card-flip" id="flipwrap-${p.id}"><div class="prop-card-flip-inner">${front}${back}</div></div>`
   }).join('')
@@ -5050,6 +5061,18 @@ function markProposalPaid(id){
   if(!p) return
   p.status='paid'
   p.paidDate=today()
+  p.updated=Date.now()
+  DB.save('proposals',proposals)
+  refreshProposals()
+  refreshInvoices()
+  refreshOverview()
+}
+function markProposalPaidInFull(id){
+  const proposals=DB.load('proposals')
+  const p=proposals.find(x=>x.id===id)
+  if(!p) return
+  p.fullyPaid=true
+  p.finalPaidDate=today()
   p.updated=Date.now()
   DB.save('proposals',proposals)
   refreshProposals()

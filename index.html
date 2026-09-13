@@ -2450,12 +2450,11 @@ tbody tr:hover{background:var(--bg)}
 // ============================================================
 // DATA STORE — persists to localStorage automatically
 // ============================================================
-/* ── CLOUD DB (JSONBin.io) ───────────────────────────────── */
+/* ── CLOUD DB (Firebase Realtime Database) ───────────────── */
 const CLOUD = {
-  binId: '69bb392db7ec241ddc7f3cab',
-  key:   '$2a$10$NP0toOIKYkxfRnundyBgd.ckEb.QO/dqOrTI4A.hwY./LP0oklxZG',
-  url()  { return `https://api.jsonbin.io/v3/b/${this.binId}` },
-  headers(){ return { 'Content-Type':'application/json', 'X-Master-Key': this.key } },
+  dbUrl: 'https://bh-dashboard-sync-default-rtdb.firebaseio.com',
+  url()  { return `${this.dbUrl}/data.json` },
+  headers(){ return { 'Content-Type':'application/json' } },
 
   // Pull latest data from cloud → store in localStorage cache → refresh UI
   async pull(){
@@ -2463,7 +2462,7 @@ const CLOUD = {
       const r = await fetch(this.url(), { headers: this.headers() })
       if(!r.ok) throw new Error('pull failed')
       const json = await r.json()
-      const data = json.record
+      const data = json || {}
       const keys = ['proposals','transactions','invoices','bids','projects','clients','estimates','leads','tasks','changeorders','requisitions']
       keys.forEach(k => { if(Array.isArray(data[k])) localStorage.setItem('bh_'+k, JSON.stringify(data[k])) })
       return data
@@ -5084,7 +5083,7 @@ function init(){
       const r = await fetch(CLOUD.url(), { headers: CLOUD.headers() })
       if(!r.ok) throw new Error('fetch failed')
       const json = await r.json()
-      const cloudData = json.record
+      const cloudData = json || {}
       const keys = ['proposals','transactions','invoices','bids','projects','clients','estimates','leads','tasks','changeorders','requisitions']
       keys.forEach(k => { if(Array.isArray(cloudData[k])) localStorage.setItem('bh_'+k, JSON.stringify(cloudData[k])) })
       setSyncStatus('ok')
@@ -5101,7 +5100,7 @@ function init(){
       const r = await fetch(CLOUD.url(), { headers: CLOUD.headers() })
       if(!r.ok) return
       const json = await r.json()
-      const cloudData = json.record
+      const cloudData = json || {}
       const keys = ['proposals','transactions','invoices','bids','projects','clients','estimates','leads','tasks','changeorders','requisitions']
       let changed = false
       keys.forEach(k => {

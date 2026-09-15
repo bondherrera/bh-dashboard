@@ -363,6 +363,34 @@ tbody tr:hover{background:var(--bg)}
 .dep-banner-paid{background:var(--green-bg);color:var(--green)}
 .dep-banner-remaining{background:var(--red-bg);color:var(--red)}
 .dep-banner__amt{font-size:0.9rem;white-space:nowrap}
+/* Payment Tracker tab */
+.pt-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:1rem;flex-wrap:wrap}
+.pt-toolbar__filters{display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center}
+.pt-summary{display:flex;gap:0.6rem;flex-wrap:wrap;margin-bottom:1rem;font-size:0.78rem;color:var(--text-2)}
+.pt-summary strong{color:var(--text)}
+.pt-row{border-radius:var(--radius-sm);overflow:hidden;margin-bottom:0.55rem;border:1px solid var(--border);box-shadow:var(--shadow)}
+.pt-header{display:flex;align-items:center;justify-content:space-between;padding:0.65rem 1rem;cursor:pointer;color:#fff;font-weight:600;font-size:0.85rem;gap:0.75rem}
+.pt-header.pt-paid{background:var(--green)}
+.pt-header.pt-sent{background:var(--accent)}
+.pt-header.pt-draft{background:#6b7280}
+.pt-header.pt-declined{background:#6b7280}
+.pt-header__title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.pt-header__meta{display:flex;gap:0.85rem;align-items:center;font-size:0.75rem;font-weight:600;white-space:nowrap}
+.pt-header__caret{transition:transform 0.2s}
+.pt-row.pt-open .pt-header__caret{transform:rotate(90deg)}
+.pt-detail{display:none;padding:1rem 1.1rem;background:var(--surface)}
+.pt-row.pt-open .pt-detail{display:block}
+.pt-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+@media(max-width:900px){.pt-grid{grid-template-columns:1fr}}
+.pt-section-title{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3);margin:0.9rem 0 0.5rem;padding-top:0.6rem;border-top:1px solid var(--border)}
+.pt-section-title:first-child{margin-top:0;border-top:none;padding-top:0}
+.pt-draws-table{width:100%;border-collapse:collapse;font-size:0.78rem}
+.pt-draws-table th{background:#374151;color:#fff;padding:0.35rem 0.5rem;text-align:left;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.04em}
+.pt-draws-table td{padding:0.3rem 0.5rem;border-bottom:1px solid var(--border)}
+.pt-draws-table input{width:100%;border:1px solid var(--border2);border-radius:4px;padding:0.25rem 0.4rem;font-size:0.78rem;font-family:inherit}
+.pt-draw-del{cursor:pointer;color:var(--red);font-weight:700;padding:0 0.4rem}
+.pt-empty-msg{font-size:0.75rem;color:var(--text-3);text-align:center;padding:2rem}
+
 /* Filter chips (used in CO + Req pages) */
 .filter-chip{font-family:'Inter',sans-serif;font-size:0.75rem;font-weight:500;padding:0.3em 0.9em;border-radius:50px;border:1.5px solid var(--border2);background:transparent;color:var(--text-2);cursor:pointer;transition:all 0.18s}
 .filter-chip:hover{border-color:var(--accent);color:var(--accent)}
@@ -698,6 +726,10 @@ tbody tr:hover{background:var(--bg)}
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7H6a2 2 0 00-2 2v9a2 2 0 002 2h9a2 2 0 002-2v-3m-3-3l6-6m0 0l-3-3m3 3H13"/></svg>
         Bids Log
       </div>
+      <div class="nav-item" data-page="paytracker" onclick="showPage('paytracker',this)">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Payment Tracker
+      </div>
       <div class="nav-item" data-page="changeorders" onclick="showPage('changeorders',this)">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/><path stroke-linecap="round" stroke-linejoin="round" d="M18 2l4 4-4 4"/></svg>
         Change Orders
@@ -1010,6 +1042,21 @@ tbody tr:hover{background:var(--bg)}
     <!-- ======================================================
          PAGE: ESTIMATING
          ====================================================== -->
+    <div class="page" id="page-paytracker">
+      <div class="pt-toolbar">
+        <div class="pt-toolbar__filters">
+          <input type="text" class="form-input" id="pt-search" placeholder="Search job or client..." style="width:220px" oninput="refreshPayTracker()">
+          <button class="tasks-filter-btn active" data-ptfilter="all" onclick="filterPayTracker('all',this)">All</button>
+          <button class="tasks-filter-btn" data-ptfilter="paid" onclick="filterPayTracker('paid',this)">Deposit Paid</button>
+          <button class="tasks-filter-btn" data-ptfilter="sent" onclick="filterPayTracker('sent',this)">Sent/Accepted</button>
+          <button class="tasks-filter-btn" data-ptfilter="draft" onclick="filterPayTracker('draft',this)">Draft</button>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="exportPayTrackerExcel()">⬇ Export to Excel</button>
+      </div>
+      <div class="pt-summary" id="pt-summary"></div>
+      <div id="pt-list"></div>
+    </div>
+
     <div class="page" id="page-estimating">
 
       <!-- View toggle: list vs builder -->
@@ -2450,6 +2497,7 @@ tbody tr:hover{background:var(--bg)}
 <!-- ============================================================
      JAVASCRIPT
      ============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ============================================================
 // DATA STORE — persists to localStorage automatically
@@ -2533,6 +2581,7 @@ const pageMeta = {
   clients:      { title:'Clients',              sub:'Your client directory and contact info' },
   changeorders: { title:'Change Orders',        sub:'Document and track scope changes and additional costs' },
   requisitions: { title:'Material Requisitions', sub:'Track materials you purchased and request reimbursement' },
+  paytracker:   { title:'Payment Tracker',        sub:'Deposit, final payment, sub costs, profit split, and draws — job by job, always current' },
 }
 
 function showPage(id, navEl){
@@ -2554,6 +2603,7 @@ function showPage(id, navEl){
   if(id==='clients') refreshClients()
   if(id==='changeorders') refreshCOs()
   if(id==='requisitions') refreshReqs()
+  if(id==='paytracker') refreshPayTracker()
 }
 
 // ============================================================
@@ -5078,6 +5128,209 @@ function markProposalPaidInFull(id){
   refreshProposals()
   refreshInvoices()
   refreshOverview()
+}
+// ============================================================
+// PAYMENT TRACKER (dashboard-native version of the job tracker)
+// ============================================================
+let ptOpenIds = new Set()
+
+function computePayNumbers(p){
+  const dt = p.depositTracker || {}
+  const value = parseFloat(p.value)||0
+  const depTotal = depositAmount(p)
+  const totalCost = (p.totalCost===undefined || p.totalCost===null || p.totalCost==='') ? null : parseFloat(p.totalCost)
+  const totalProfit = totalCost===null ? null : (value - totalCost)
+  const subPaid = parseFloat(dt.subPaid)||0
+  const myCost = parseFloat(dt.myCost)||0
+  const depositProfit = depTotal - subPaid - myCost
+  const draws = Array.isArray(p.draws) ? p.draws : []
+  const totalDraws = draws.reduce((s,d)=>s+(parseFloat(d.amount)||0),0)
+  const remainingDue = value - depTotal - totalDraws
+  const remainingCost = totalCost===null ? null : (totalCost - subPaid - myCost)
+  const remainingProfit = remainingCost===null ? null : (remainingDue - remainingCost)
+  return {value, depTotal, totalCost, totalProfit, subPaid, myCost, depositProfit, draws, totalDraws, remainingDue, remainingCost, remainingProfit}
+}
+
+function filterPayTracker(filter, btn){
+  document.querySelectorAll('[data-ptfilter]').forEach(b=>b.classList.remove('active'))
+  if(btn) btn.classList.add('active')
+  refreshPayTracker()
+}
+
+function togglePayDetail(id){
+  const row = document.getElementById('pt-row-'+id)
+  if(!row) return
+  if(ptOpenIds.has(id)){ ptOpenIds.delete(id); row.classList.remove('pt-open') }
+  else { ptOpenIds.add(id); row.classList.add('pt-open') }
+}
+
+function renderPtRow(p){
+  const n = computePayNumbers(p)
+  const dt = p.depositTracker || {}
+  const statusClass = p.status==='paid' ? 'pt-paid' : ((p.status==='sent'||p.status==='accepted') ? 'pt-sent' : 'pt-draft')
+  const statusLabel = p.status==='paid' ? (p.fullyPaid?'PAID IN FULL':'DEPOSIT PAID') : (p.status||'draft').toUpperCase()
+  const isOpen = ptOpenIds.has(p.id)
+  const name = (p.project && p.client) ? (p.project+'  \u2014  '+p.client) : (p.project||p.client||'Untitled')
+  const draws = n.draws
+  const totalDrawSlots = Math.max(draws.length + 3, 4)
+  const drawRows = []
+  for(let i=0;i<totalDrawSlots;i++){
+    const d = draws[i] || {}
+    drawRows.push('<tr>'
+      + '<td><input type="date" value="'+escAttr(d.date||'')+'" id="pt-draw-date-'+p.id+'-'+i+'"></td>'
+      + '<td><input type="number" step="0.01" placeholder="$0.00" value="'+(d.amount!=null?d.amount:'')+'" id="pt-draw-amt-'+p.id+'-'+i+'"></td>'
+      + '<td><input type="text" placeholder="Note" value="'+escAttr(d.note||'')+'" id="pt-draw-note-'+p.id+'-'+i+'"></td>'
+      + '</tr>')
+  }
+  return '<div class="pt-row '+(isOpen?'pt-open':'')+'" id="pt-row-'+p.id+'">'
+    + '<div class="pt-header '+statusClass+'" onclick="togglePayDetail('+p.id+')">'
+    +   '<span class="pt-header__caret">\u25b8</span>'
+    +   '<span class="pt-header__title">'+name+'</span>'
+    +   '<span class="pt-header__meta"><span>'+statusLabel+'</span><span>'+fmt(n.value)+'</span></span>'
+    + '</div>'
+    + '<div class="pt-detail">'
+    +   '<div class="pt-grid">'
+    +     '<div>'
+    +       '<div class="pt-section-title">Job Totals</div>'
+    +       '<div class="form-group"><label class="form-label">Total Price to Client</label><input type="text" class="form-input" value="'+fmt(n.value)+'" disabled></div>'
+    +       '<div class="form-group"><label class="form-label">Total Cost to You</label><input type="number" step="0.01" class="form-input" id="pt-cost-'+p.id+'" placeholder="$0.00" value="'+(n.totalCost!=null?n.totalCost:'')+'"></div>'
+    +       '<div class="dep-line"><span>Total Profit</span><strong>'+(n.totalProfit!=null?fmt(n.totalProfit):'enter cost above')+'</strong></div>'
+    +       '<div class="pt-section-title">Deposit \u2014 '+(p.paymentType==='full'?'100':(p.depPct||50))+'%</div>'
+    +       '<div class="dep-line"><span>Deposit Amount from Client</span><strong>'+fmt(n.depTotal)+'</strong></div>'
+    +       '<div class="form-group"><label class="form-label">Deposit Cost Sent to Sub</label><input type="number" step="0.01" class="form-input" id="pt-subpaid-'+p.id+'" placeholder="$0.00" value="'+(dt.subPaid||'')+'"></div>'
+    +       '<div class="form-group"><label class="form-label">Deposit Materials/Other Cost</label><input type="number" step="0.01" class="form-input" id="pt-mycost-'+p.id+'" placeholder="$0.00" value="'+(dt.myCost||'')+'"></div>'
+    +       '<div class="dep-line"><span>Deposit Profit</span><strong>'+fmt(n.depositProfit)+'</strong></div>'
+    +       '<div class="dep-line"><span>\u00a0\u00a0\u2192 Paid to You (50%)</span><strong>'+fmt(n.depositProfit/2)+'</strong></div>'
+    +       '<div class="dep-line"><span>\u00a0\u00a0\u2192 Paid to Dad (50%)</span><strong>'+fmt(n.depositProfit/2)+'</strong></div>'
+    +     '</div>'
+    +     '<div>'
+    +       '<div class="pt-section-title">Final Payment \u2014 Other '+(p.paymentType==='full'?'0':(p.finPct||50))+'%</div>'
+    +       '<div class="dep-line"><span>Remaining Due from Client</span><strong>'+fmt(n.remainingDue)+'</strong></div>'
+    +       '<div class="dep-line"><span>Remaining Cost Owed to Sub</span><strong>'+(n.remainingCost!=null?fmt(n.remainingCost):'enter cost above')+'</strong></div>'
+    +       '<div class="dep-line"><span>Remaining Profit</span><strong>'+(n.remainingProfit!=null?fmt(n.remainingProfit):'\u2014')+'</strong></div>'
+    +       '<div class="dep-line"><span>\u00a0\u00a0\u2192 Paid to You (50%)</span><strong>'+(n.remainingProfit!=null?fmt(n.remainingProfit/2):'\u2014')+'</strong></div>'
+    +       '<div class="dep-line"><span>\u00a0\u00a0\u2192 Paid to Dad (50%)</span><strong>'+(n.remainingProfit!=null?fmt(n.remainingProfit/2):'\u2014')+'</strong></div>'
+    +       '<div class="pt-section-title">Draws Log</div>'
+    +       '<table class="pt-draws-table"><thead><tr><th>Date</th><th>Amount</th><th>Note</th></tr></thead><tbody>'+drawRows.join('')+'</tbody></table>'
+    +       '<div class="dep-updated" style="text-align:left;margin-top:0.4rem">Total Draws Collected: <strong>'+fmt(n.totalDraws)+'</strong></div>'
+    +     '</div>'
+    +   '</div>'
+    +   '<div class="form-group" style="margin-top:0.6rem"><label class="form-label">Notes</label><input type="text" class="form-input" id="pt-note-'+p.id+'" placeholder="e.g. paid Miguel via Zelle 9/12" value="'+escAttr(dt.note||'')+'"></div>'
+    +   '<button class="btn btn-primary btn-sm" style="margin-top:0.5rem" onclick="event.stopPropagation();savePayTracker('+p.id+')">\ud83d\udcbe Save</button>'
+    + '</div>'
+    + '</div>'
+}
+
+function refreshPayTracker(){
+  const proposals = DB.load('proposals')
+  const searchEl = document.getElementById('pt-search')
+  const searchLC = ((searchEl && searchEl.value) || '').trim().toLowerCase()
+  const activeBtn = document.querySelector('[data-ptfilter].active')
+  const filter = activeBtn ? activeBtn.dataset.ptfilter : 'all'
+  let filtered = proposals.filter(p=>{
+    if(filter==='paid' && p.status!=='paid') return false
+    if(filter==='sent' && !(p.status==='sent'||p.status==='accepted')) return false
+    if(filter==='draft' && p.status!=='draft') return false
+    if(searchLC){
+      const hay = ((p.project||'')+' '+(p.client||'')).toLowerCase()
+      if(!hay.includes(searchLC)) return false
+    }
+    return true
+  })
+  filtered = filtered.sort((a,b)=>(b.updated||0)-(a.updated||0))
+
+  const totalDeposits = proposals.reduce((s,p)=> s + (p.status==='paid'?depositAmount(p):0), 0)
+  const totalDrawsAll = proposals.reduce((s,p)=>{ const n=computePayNumbers(p); return s+n.totalDraws }, 0)
+  const summaryEl = document.getElementById('pt-summary')
+  if(summaryEl){
+    summaryEl.innerHTML = '<span>Showing <strong>'+filtered.length+'</strong> of '+proposals.length+' jobs</span>'
+      + '<span>Deposits Collected: <strong>'+fmt(totalDeposits)+'</strong></span>'
+      + '<span>Draws Collected: <strong>'+fmt(totalDrawsAll)+'</strong></span>'
+  }
+
+  const list = document.getElementById('pt-list')
+  if(!list) return
+  if(filtered.length===0){
+    list.innerHTML = '<div class="pt-empty-msg">No jobs match this filter.</div>'
+    return
+  }
+  list.innerHTML = filtered.map(p=>renderPtRow(p)).join('')
+}
+
+function savePayTracker(id){
+  const proposals = DB.load('proposals')
+  const p = proposals.find(x=>x.id===id)
+  if(!p) return
+  const g = i => document.getElementById(i)
+  const costEl = g('pt-cost-'+id)
+  p.totalCost = (costEl && costEl.value!=='') ? parseFloat(costEl.value) : null
+  const subPaid = parseFloat((g('pt-subpaid-'+id)||{}).value)||0
+  const myCost = parseFloat((g('pt-mycost-'+id)||{}).value)||0
+  const note = ((g('pt-note-'+id)||{}).value || '').trim()
+  const prevDt = p.depositTracker || {}
+  p.depositTracker = Object.assign({}, prevDt, { subPaid, myCost, note, updated: Date.now() })
+
+  const draws = []
+  let i = 0
+  while(true){
+    const dateEl = g('pt-draw-date-'+id+'-'+i)
+    if(!dateEl) break
+    const amtEl = g('pt-draw-amt-'+id+'-'+i)
+    const noteEl = g('pt-draw-note-'+id+'-'+i)
+    const amtVal = (amtEl && amtEl.value!=='') ? parseFloat(amtEl.value) : null
+    const dateVal = dateEl.value || ''
+    const noteVal = ((noteEl && noteEl.value) || '').trim()
+    if(amtVal!=null || dateVal || noteVal){
+      draws.push({date: dateVal, amount: amtVal, note: noteVal})
+    }
+    i++
+  }
+  p.draws = draws
+  p.updated = Date.now()
+  DB.save('proposals', proposals)
+  ptOpenIds.add(id)
+  refreshPayTracker()
+  try{ refreshProposals() }catch(e){}
+}
+
+function exportPayTrackerExcel(){
+  if(typeof XLSX === 'undefined'){
+    alert('The Excel export library did not load. Check your internet connection and try again.')
+    return
+  }
+  const proposals = DB.load('proposals')
+  const rows = proposals.map(p=>{
+    const n = computePayNumbers(p)
+    const dt = p.depositTracker || {}
+    return {
+      'Job': p.project||'',
+      'Client': p.client||'',
+      'Status': p.status||'',
+      'Total Price': n.value,
+      'Total Cost': n.totalCost,
+      'Total Profit': n.totalProfit,
+      'Deposit Amount': n.depTotal,
+      'Deposit Sub Paid': n.subPaid,
+      'Deposit Materials/Other': n.myCost,
+      'Deposit Profit': n.depositProfit,
+      'Deposit Profit - You': n.depositProfit/2,
+      'Deposit Profit - Dad': n.depositProfit/2,
+      'Total Draws Collected': n.totalDraws,
+      'Remaining Due': n.remainingDue,
+      'Remaining Cost': n.remainingCost,
+      'Remaining Profit': n.remainingProfit,
+      'Remaining Profit - You': n.remainingProfit!=null ? n.remainingProfit/2 : null,
+      'Remaining Profit - Dad': n.remainingProfit!=null ? n.remainingProfit/2 : null,
+      'Sub Name': dt.subName||'',
+      'Notes': dt.note||''
+    }
+  })
+  const ws = XLSX.utils.json_to_sheet(rows)
+  ws['!cols'] = [{wch:26},{wch:18},{wch:10},{wch:12},{wch:12},{wch:12},{wch:12},{wch:14},{wch:14},{wch:12},{wch:16},{wch:16},{wch:16},{wch:14},{wch:14},{wch:14},{wch:16},{wch:16},{wch:16},{wch:40}]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Payment Tracker')
+  const dateStr = new Date().toISOString().split('T')[0]
+  XLSX.writeFile(wb, 'Brond_Builds_Payment_Tracker_'+dateStr+'.xlsx')
 }
 // ============================================================
 // INIT

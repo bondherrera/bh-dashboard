@@ -5242,6 +5242,8 @@ function refreshProposals(){
   const sortedKeys=[...groups.keys()].sort((a,b)=>{
     if(a==='No Address Listed') return 1
     if(b==='No Address Listed') return -1
+    const countDiff=groups.get(b).items.length-groups.get(a).items.length
+    if(countDiff!==0) return countDiff // most proposals first
     return a.localeCompare(b)
   })
   grid.innerHTML=sortedKeys.map((key,idx)=>{

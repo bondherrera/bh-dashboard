@@ -5239,7 +5239,7 @@ function refreshProposals(){
   })
   grid.innerHTML=sortedKeys.map(key=>{
     const g=groups.get(key)
-    const items=g.items.sort((a,b)=>(b.updated||0)-(a.updated||0))
+    const items=g.items.sort((a,b)=>(b.id||0)-(a.id||0)) // newest-made first
     // Display the most common raw spelling of this address as the header
     const displayAddr=Object.entries(g.raws).sort((a,b)=>b[1]-a[1])[0][0]
     const cardsHTML=items.map(buildProposalCard).join('')

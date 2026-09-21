@@ -2956,7 +2956,116 @@ function deleteBid(id){
 }
 
 function printBid(){
+  const client = document.getElementById('bid-client').value.trim() || '—'
+  const service = document.getElementById('bid-service').value
+  const address = document.getElementById('bid-address').value.trim()
+  const date = document.getElementById('bid-date').value
+  const status = document.getElementById('bid-status').value
+  const notes = document.getElementById('bid-notes').value.trim()
+  const markup = parseFloat(document.getElementById('bid-markup').value)||0
+
+  const items = []
+  document.querySelectorAll('#bid-items-body tr').forEach(row => {
+    const desc = row.querySelector('input[type=text]')?.value.trim()
+    const inputs = row.querySelectorAll('input[type=number]')
+    const type = row.querySelector('select')?.value
+    if(desc && inputs.length>=2){
+      items.push({ desc, type, qty: parseFloat(inputs[0].value)||0, unit: parseFloat(inputs[1].value)||0 })
+    }
+  })
+  const subtotal = items.reduce((s,i)=>s+i.qty*i.unit,0)
+  const markupAmt = subtotal * (markup/100)
+  const total = subtotal + markupAmt
+  const bidNum = 'BID-' + (DB.bids.length+1).toString().padStart(3,'0')
+
+  const statusLabel = {draft:'Draft',sent:'Sent to Client',approved:'Approved',lost:'Lost'}
+  const statusColor = {draft:'#888',sent:'#2563EB',approved:'#2E7D52',lost:'#C0392B'}
+
+  const itemsHTML = items.length
+    ? `<table style="width:100%;border-collapse:collapse;font-size:9.5pt;margin-top:6px">
+        <thead><tr style="background:#f5f0ea">
+          <th style="text-align:left;padding:5px 8px;border:1px solid #e0d9cf">Description</th>
+          <th style="text-align:left;padding:5px 8px;border:1px solid #e0d9cf">Type</th>
+          <th style="text-align:right;padding:5px 8px;border:1px solid #e0d9cf">Qty</th>
+          <th style="text-align:right;padding:5px 8px;border:1px solid #e0d9cf">Unit Cost</th>
+          <th style="text-align:right;padding:5px 8px;border:1px solid #e0d9cf">Total</th>
+        </tr></thead>
+        <tbody>${items.map(i=>`<tr>
+          <td style="padding:5px 8px;border:1px solid #e0d9cf">${i.desc}</td>
+          <td style="padding:5px 8px;border:1px solid #e0d9cf">${i.type||''}</td>
+          <td style="text-align:right;padding:5px 8px;border:1px solid #e0d9cf">${i.qty}</td>
+          <td style="text-align:right;padding:5px 8px;border:1px solid #e0d9cf">${fmt(i.unit)}</td>
+          <td style="text-align:right;padding:5px 8px;border:1px solid #e0d9cf">${fmt(i.qty*i.unit)}</td>
+        </tr>`).join('')}</tbody>
+      </table>`
+    : '<p style="color:#aaa;font-style:italic;font-size:9pt">No line items listed.</p>'
+
+  const html = `
+    <div class="pdf-header">
+      <div>
+        <div class="pdf-logo-name">BH LUXURY BUILDS <span>&amp;</span> REMODELS</div>
+        <div class="pdf-logo-tag">Scottsdale's Premier Luxury Contractor</div>
+        <div class="pdf-logo-contact">480-406-8742 &nbsp;·&nbsp; Bondherrera1@gmail.com &nbsp;·&nbsp; Scottsdale, AZ</div>
+      </div>
+      <div class="pdf-doc-label">
+        <div class="pdf-doc-type">Bid / Estimate</div>
+        <div class="pdf-doc-num">${bidNum}</div>
+        <div class="pdf-doc-date">Date: ${date ? fmtDate(date) : fmtDate(today())}</div>
+        <div style="font-size:8pt;font-weight:700;color:${statusColor[status]||'#888'};margin-top:2px">${statusLabel[status]||status}</div>
+      </div>
+    </div>
+    <div class="pdf-parties">
+      <div>
+        <div class="pdf-party-label">Client</div>
+        <div class="pdf-party-name">${client}</div>
+      </div>
+      <div>
+        <div class="pdf-party-label">Project</div>
+        <div class="pdf-party-name">${service||'—'}</div>
+        <div class="pdf-party-detail">${address||''}</div>
+      </div>
+    </div>
+    <div class="pdf-section">
+      <div class="pdf-section-title">Line Items</div>
+      ${itemsHTML}
+    </div>
+    <div class="pdf-section">
+      <div class="pdf-section-title">Pricing Summary</div>
+      <div class="pdf-pricing-box">
+        <div class="pdf-pricing-schedule" style="grid-template-columns:repeat(2,1fr)">
+          <div class="pdf-pricing-milestone"><div class="pdf-pricing-milestone-label">Subtotal</div><div class="pdf-pricing-milestone-amount">${fmt(subtotal)}</div></div>
+          <div class="pdf-pricing-milestone"><div class="pdf-pricing-milestone-label">Markup (${markup}%)</div><div class="pdf-pricing-milestone-amount">${fmt(markupAmt)}</div></div>
+        </div>
+        <div class="pdf-pricing-total" style="margin-top:0.75rem">
+          <div class="pdf-pricing-total-label">Total Bid Amount</div>
+          <div class="pdf-pricing-total-amount">${fmt(total)}</div>
+        </div>
+      </div>
+    </div>
+    ${notes ? `<div class="pdf-section"><div class="pdf-section-title">Scope of Work / Notes</div><div class="pdf-notes-box">${notes.replace(/\n/g,'<br>')}</div></div>` : ''}
+    <div class="pdf-section">
+      <div class="pdf-section-title">Authorization</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:1rem">
+        <div><div style="border-top:1.5px solid #ccc;padding-top:6px;font-size:8.5pt;color:#888">Client Signature &amp; Date</div></div>
+        <div><div style="border-top:1.5px solid #ccc;padding-top:6px;font-size:8.5pt;color:#888">BH Luxury Builds Authorized By &amp; Date</div></div>
+      </div>
+    </div>`
+
+  let pdfWrap = document.getElementById('bid-pdf-view')
+  if(!pdfWrap){
+    pdfWrap = document.createElement('div')
+    pdfWrap.id = 'bid-pdf-view'
+    pdfWrap.style.display = 'none'
+    document.body.appendChild(pdfWrap)
+  }
+  pdfWrap.innerHTML = `<div class="pdf-wrap"><div class="pdf-page">${html}</div></div>`
+
+  const style = document.createElement('style')
+  style.id = 'bid-print-style'
+  style.textContent = '@media print { .modal-overlay{display:none!important} #bid-pdf-view { display:block!important; position:static; width:100%; background:#fff; } #bid-pdf-view * { -webkit-print-color-adjust:exact; print-color-adjust:exact; } .pdf-page { padding:0; max-width:100%; } }'
+  document.head.appendChild(style)
   window.print()
+  setTimeout(()=>{ const s=document.getElementById('bid-print-style'); if(s) s.remove() }, 1000)
 }
 
 function refreshBids(){

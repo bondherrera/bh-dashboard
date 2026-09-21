@@ -407,8 +407,10 @@ tbody tr:hover{background:var(--bg)}
 #prop-pdf-view{display:none}
 @media print{
   @page{size:letter portrait;margin:0.5in}
-  /* Hide absolutely everything except the PDF view */
-  body > *{display:none!important}
+  /* Hide absolutely everything except the PDF view (only while body.pdfmode is set —
+     see printProposal()/printCO() — so this doesn't break Estimate/Gantt printing,
+     which print the currently-visible page instead of a dedicated view) */
+  body.pdfmode > *{display:none!important}
   #prop-pdf-view{display:block!important;position:static;width:100%;background:#fff}
   #co-pdf-view{display:block!important;position:static;width:100%;background:#fff}
   /* PDF view internal styles */
@@ -3062,8 +3064,9 @@ function printBid(){
   style.id = 'bid-print-style'
   style.textContent = '@media print { .modal-overlay{display:none!important} #bid-pdf-view { display:block!important; position:static; width:100%; background:#fff; } #bid-pdf-view * { -webkit-print-color-adjust:exact; print-color-adjust:exact; } .pdf-page { padding:0; max-width:100%; } }'
   document.head.appendChild(style)
+  document.body.classList.add('pdfmode')
   window.print()
-  setTimeout(()=>{ const s=document.getElementById('bid-print-style'); if(s) s.remove() }, 1000)
+  setTimeout(()=>{ const s=document.getElementById('bid-print-style'); if(s) s.remove(); document.body.classList.remove('pdfmode') }, 1000)
 }
 
 function refreshBids(){
@@ -4895,7 +4898,9 @@ function saveProposal(){
 function printProposal(){
   if(!saveProposal()) return
   buildPropPDF()
+  document.body.classList.add('pdfmode')
   window.print()
+  setTimeout(()=>document.body.classList.remove('pdfmode'), 1000)
 }
 
 function buildPropPDF(){
@@ -5709,7 +5714,9 @@ function printCO(){
     </div>`
   const pdfView = document.getElementById('co-pdf-view')
   pdfView.innerHTML = `<div class="pdf-wrap"><div class="pdf-page">${html}</div></div>`
+  document.body.classList.add('pdfmode')
   window.print()
+  setTimeout(()=>document.body.classList.remove('pdfmode'), 1000)
 }
 
 // ============================================================
@@ -6012,8 +6019,9 @@ function printReq(){
   style.id = 'req-print-style'
   style.textContent = '@media print { #req-pdf-view { display:block!important; position:static; width:100%; background:#fff; } #req-pdf-view * { -webkit-print-color-adjust:exact; print-color-adjust:exact; } .pdf-page { padding:0; max-width:100%; } }'
   document.head.appendChild(style)
+  document.body.classList.add('pdfmode')
   window.print()
-  setTimeout(()=>{ const s=document.getElementById('req-print-style'); if(s) s.remove() }, 1000)
+  setTimeout(()=>{ const s=document.getElementById('req-print-style'); if(s) s.remove(); document.body.classList.remove('pdfmode') }, 1000)
 }
 
 /* ── EXPORT / IMPORT ALL DATA ───────────────────────────── */

@@ -5221,12 +5221,14 @@ function refreshProposals(){
   }
 
   // Group proposals by job site address so jobs at the same property sit together.
-  // Addresses are normalized (Rd/Road, Dr/Drive, N/North, etc. all treated the same)
-  // so minor typing differences don't split one property into separate groups.
-  const groups=new Map() // normalizedKey -> {raws:{raw:count}, items:[]}
+  // Grouping uses the exact address text (case/spacing-insensitive only) so that
+  // truly different addresses never get lumped together by guesswork. If the
+  // underlying data needs different spellings unified as one property, that is
+  // done in the proposal's saved address field itself, not by fuzzy matching here.
+  const groups=new Map() // exactKey -> {raws:{raw:count}, items:[]}
   filtered.forEach(p=>{
     const raw=(p.address||'').trim()||'No Address Listed'
-    const key=raw==='No Address Listed' ? raw : normalizeAddressKey(raw)
+    const key=raw==='No Address Listed' ? raw : raw.toLowerCase().replace(/\s+/g,' ')
     if(!groups.has(key)) groups.set(key,{raws:{},items:[]})
     const g=groups.get(key)
     g.raws[raw]=(g.raws[raw]||0)+1

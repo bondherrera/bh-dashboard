@@ -1729,9 +1729,6 @@ tbody tr:hover{background:var(--bg)}
           </div><!-- /right col -->
         </div><!-- /grid -->
       </div><!-- /prop-builder-view -->
-
-      <!-- PDF view (hidden, shown only on print) -->
-      <div id="prop-pdf-view"><div class="pdf-wrap"><div class="pdf-page" id="pdf-page-content"></div></div></div>
     </div><!-- /page-proposals -->
 
     <!-- ============================================================
@@ -1882,8 +1879,6 @@ tbody tr:hover{background:var(--bg)}
         </div>
       </div>
 
-      <!-- PDF view (hidden, shown only on print) -->
-      <div id="co-pdf-view" style="display:none"></div>
     </div><!-- /page-changeorders -->
 
     <!-- ============================================================
@@ -6080,4 +6075,10 @@ init()
 
 <!-- ============================================================
      PROPOSAL PDF VIEW (only visible when printing)
-     ==================================
+     ============================================================ -->
+<div id="prop-pdf-view"><div class="pdf-wrap"><div class="pdf-page" id="pdf-page-content"></div></div></div>
+
+<!-- ============================================================
+     CHANGE ORDER PDF VIEW (only visible when printing)
+     ============================================================ -->
+<div id="co-pdf-view" style="display:none"></div>
